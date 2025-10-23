@@ -1,0 +1,69 @@
+name: Run tests
+
+on:
+  pull_request:
+    branches: [ feedback ]
+
+jobs:
+  tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    container:
+      image: cepryh9/spbu-linux-course-lab-01:latest
+      options: --user root
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Run tests task-01
+      id: task01
+      if: always()
+      run: |
+        /workspace/task-01/checker.sh /workspace/task-01/solution.sh ./task-01/solution.sh /workspace/data
+
+    - name: Generate test summary
+      if: always()
+      run: |
+        # Create summary content
+        SUMMARY_CONTENT=$(cat << 'EOF'
+        # Test Results
+        | Task | Result |
+        |------|--------|
+        EOF
+        )
+        
+        # Add Task 01 result
+        if [ "${{ steps.task01.outcome }}" = "success" ]; then
+          SUMMARY_CONTENT="${SUMMARY_CONTENT}\n| Task 01 | ✅ Passed |"
+        else
+          SUMMARY_CONTENT="${SUMMARY_CONTENT}\n| Task 01 | ❌ Failed |"
+        fi
+       
+        # Write to step summary
+        echo "$SUMMARY_CONTENT" >> $GITHUB_STEP_SUMMARY
+        
+        # Save summary for PR comment
+        echo "$SUMMARY_CONTENT" > /tmp/test_summary.md
+
+    - name: Comment PR with test results
+      if: always() && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('/tmp/test_summary.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });
