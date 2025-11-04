@@ -15,6 +15,8 @@ jobs:
     container:
       image: cepryh9/spbu-linux-course-lab-01:latest
       options: --user root
+    environment: 
+      name: grading
 
     steps:
     - name: Checkout code
