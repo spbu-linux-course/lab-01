@@ -15,8 +15,6 @@ jobs:
     container:
       image: cepryh9/spbu-linux-course-lab-01:latest
       options: --user root
-    environment: 
-      name: grading
 
     steps:
     - name: Checkout code
@@ -25,12 +23,20 @@ jobs:
         fetch-depth: 0
       
     - name: Create a file with GPG key
-      run: echo "${{ secrets.KEY_FOR_GPG }}" > pass.txt
+      run: echo '${{ secrets.KEY_FOR_GPG }}' > pass.txt
       shell: bash
+
+    - name: Generate file
+      run: |
+        /workspace/scripts/generate_files.sh ./hello.txt
 
     - name: Decrypt solution
       run: |
-        gpg --batch --passphrase-file pass.txt /workspace/task-01/solution.sh.gpg
+        gpg --batch --passphrase-file pass.txt /workspace/task-01/solution.sh.gpg && chmod +x /workspace/task-01/solution.sh
+
+    - name: Make solution executable
+      run: |
+        chmod +x ./task-01/solution.sh
 
     - name: Run tests task-01
       id: task01
